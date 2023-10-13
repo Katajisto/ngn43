@@ -25,7 +25,7 @@ fn linkRaylibDeps(b: *std.Build, exe: *std.Build.Step.Compile, target: std.zig.C
     const includepath = rg.path("/src/");
     exe.linkLibrary(a);
     exe.addIncludePath(includepath);
-    exe.addCSourceFiles(&[_][]const u8{"./src/c/raygui_impl.c"}, &[_][]const u8{ "-g", "-O3" });
+    exe.addCSourceFiles(.{ .files = &[_][]const u8{"./src/c/raygui_impl.c"}, .flags = &[_][]const u8{ "-g", "-O3" } });
 }
 
 pub fn link(
@@ -101,7 +101,7 @@ pub fn build(b: *std.Build) !void {
         const includepath = rg.path("/src/");
         exe_lib.linkLibrary(a);
         exe_lib.addIncludePath(includepath);
-        exe_lib.addCSourceFiles(&[_][]const u8{"./src/c/raygui_impl.c"}, &[_][]const u8{ "-g", "-O3" });
+        exe_lib.addCSourceFiles(.{ .files = &[_][]const u8{"./src/c/raygui_impl.c"}, .flags = &[_][]const u8{ "-g", "-O3" } });
         const link_step = try linkWithEmscripten(b, &[_]*std.Build.Step.Compile{ exe_lib, a });
         link_step.addArg("--embed-file");
         link_step.addArg("resources/");

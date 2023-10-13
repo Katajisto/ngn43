@@ -2,10 +2,11 @@
 .{
     .name = "ngn",
     .version = "0.0.1",
+    .paths = .{""},
     .dependencies = .{
         .raylib = .{
-            .url = "https://github.com/raysan5/raylib/archive/6094869e3e845e90e1e8ae41b98e889fb3e13e78.tar.gz",
-            .hash = "12203b7a16bcf8d7fe4c9990a46d92b6f2e35531a4b82eb3bdf8ba4a0dbcc5f21415",
+            .url = "https://github.com/Katajisto/raylib-zig-nightly/archive/refs/heads/master.tar.gz", // using a fork for zig nightly correct build.zig
+            .hash = "12203c3836e3f3f987c013b74ec62afe9a7c5790910eedff144c0352c3362f53d800",
         },
         .raygui = .{
             .url = "https://github.com/raysan5/raygui/archive/refs/tags/4.0.tar.gz",

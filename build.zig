@@ -5,8 +5,6 @@
 // We are using the C bindings because I want to learn how to actually link a C library to Zig
 // and also not be dependent on the zig bindings being maintained.
 
-// This is still missing raylib gui and also web compilation.
-
 // - Katajisto
 
 const std = @import("std");

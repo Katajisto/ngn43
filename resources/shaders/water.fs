@@ -1,8 +1,8 @@
 #version 100
 
-#define WATER_COL vec3(0.0, 0.4453, 0.7305)
+#define WATER_COL vec3(0.0, 0.3453, 0.8305)
 #define WATER2_COL vec3(0.0, 0.4180, 0.6758)
-#define FOAM_COL vec3(0.8125, 0.9609, 0.9648)
+#define FOAM_COL vec3(0.6125, 0.6609, 0.9648)
 
 #define M_2PI 6.283185307
 #define M_6PI 18.84955592
@@ -10,9 +10,11 @@ precision mediump float;
 
 // Input vertex attributes (from vertex shader)
 varying vec2 fragTexCoord;
+varying vec3 fragPos;
 varying vec3 normal;
 varying vec3 cv;
 varying float stime;
+varying float dist;
 
 // Input uniform values
 uniform sampler2D texture0;
@@ -149,5 +151,17 @@ void main()
     spec = max(spec, 0.0);
     spec *= 4.0;
     
-    gl_FragColor = vec4(water(fragTexCoord * 60.0, vec3(0.0, 1.0, 0.0)) * lightfactor + vec3(1.0, 1.0, 1.0) * spec * 0.7, 1.0);
+    // calculate fog based on how far fragment is from camera.
+    const vec4 fogColor = vec4(0.07, 0.67, 1.0, 1.0);
+
+    const float fogStart = 2.0;
+    const float fogEnd = 10.0;
+    float fogFactor = max(dist - 250.0, 0.0) * 0.01;
+    
+    // gl_FragColor = vec4(vec3(fogFactor), 1.0);
+    if(fogFactor > 1.0) {
+        gl_FragColor = fogColor;
+    } else {
+        gl_FragColor = mix(vec4(water((fragPos).xz, vec3(0.0, 1.0, 0.0)) * lightfactor + vec3(1.0, 1.0, 1.0) * spec * 0.7, 1.0), fogColor, fogFactor);
+    }
 }

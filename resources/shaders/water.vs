@@ -10,9 +10,12 @@ attribute vec4 vertexColor;
 uniform mat4 mvp;
 uniform float time;
 uniform vec3 camera;
+uniform mat4 matModel;
 
 // Output vertex attributes (to fragment shader)
 varying vec2 fragTexCoord;
+varying vec3 fragPos;
+varying float dist;
 varying vec3 normal;
 varying vec3 cv;
 varying float stime;
@@ -46,19 +49,22 @@ vec3 wave(vec4 wave, vec3 p, inout vec3 tangent, inout vec3 binormal) {
 }
 
 void main() {
-    fragTexCoord = vertexTexCoord;
     vec3 tangent = vec3(1.0, 0.0, 0.0);
     vec3 binormal = vec3(0.0, 0.0, 1.0);
-    vec3 p = vertexPosition;
-
-    p += wave(vec4(1.0, 0.0, 0.2, 10.0), vertexPosition, tangent, binormal);
-    p += wave(vec4(0.0, 1.0, 0.125, 15.0), vertexPosition, tangent, binormal);
-    p += wave(vec4(1.0, 1.0, 0.225, 5.0), vertexPosition, tangent, binormal);
+	vec3 p = vertexPosition;
+	vec4 world_pos = matModel * vec4(vertexPosition, 1.0);
+	vec3 world_vertex_pos = vec3(world_pos.x, world_pos.y, world_pos.z);
+	fragPos = world_vertex_pos;
+	fragTexCoord = vec2(world_vertex_pos.x, world_vertex_pos.y);
+    p += wave(vec4(1.0, 0.0, 0.2, 10.0), world_vertex_pos, tangent, binormal);
+    p += wave(vec4(0.0, 1.0, 0.125, 15.0), world_vertex_pos, tangent, binormal);
+    p += wave(vec4(1.0, 1.0, 0.225, 5.0), world_vertex_pos, tangent, binormal);
     
     normal = normalize(cross(normalize(binormal), normalize(tangent)));
 
-    cv = normalize(camera - vertexPosition);
+    cv = normalize(camera - world_vertex_pos);
+	dist = length(camera - world_vertex_pos);
     
     gl_Position = mvp * vec4(p.x, p.y, p.z, 1.0);
-	stime = time;
+	// stime = time;
 }

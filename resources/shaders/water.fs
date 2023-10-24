@@ -1,8 +1,9 @@
 #version 100
 
 #define WATER_COL vec3(0.0, 0.3453, 0.8305)
-#define WATER2_COL vec3(0.0, 0.4180, 0.6758)
-#define FOAM_COL vec3(0.6125, 0.6609, 0.9648)
+#define WATER2_COL vec3(0.0, 0.2180, 0.9758)
+#define FOAM_COL vec3(0.5, 0.6453, 0.8705)
+#define FOAM_COL_SPEC vec3(0.7125, 0.8609, 0.9648)
 
 #define M_2PI 6.283185307
 #define M_6PI 18.84955592
@@ -112,7 +113,7 @@ float waterlayer(vec2 uv)
 }
 
 // Procedural texture generation for the water
-vec3 water(vec2 uv, vec3 cdir)
+vec3 water(vec2 uv, vec3 cdir, vec3 foam_col)
 {
     uv *= vec2(0.25);
 
@@ -135,8 +136,12 @@ vec3 water(vec2 uv, vec3 cdir)
     );
     
     vec3 ret = mix(WATER_COL, WATER2_COL, waterlayer(uv + dist.xy));
-    ret = mix(ret, FOAM_COL, waterlayer(vec2(1.0) - uv - dist.yx));
+    ret = mix(ret, foam_col, waterlayer(vec2(1.0) - uv - dist.yx));
     return ret;
+}
+
+int mod(int a, int b) {
+    return a - b * (a / b);
 }
 
 void main()
@@ -144,7 +149,7 @@ void main()
     vec3 light = normalize(vec3(40.0, 100.0, 40.0));
      
     float lightfactor = max(dot(light, normal),0.0);
-    lightfactor += 0.2;
+    lightfactor += 0.0;
     lightfactor = min(max(lightfactor, 0.0), 1.0);
     float spec = max(dot(normalize(light + cv), normal), 0.0);
     spec -= 0.9;
@@ -156,12 +161,14 @@ void main()
 
     const float fogStart = 2.0;
     const float fogEnd = 10.0;
-    float fogFactor = max(dist - 250.0, 0.0) * 0.01;
-    
-    // gl_FragColor = vec4(vec3(fogFactor), 1.0);
+    float fogFactor = max(dist - 350.0, 0.0) * 0.01;
+
+    vec3 foam = mix(FOAM_COL, FOAM_COL_SPEC, spec);
+
+    gl_FragColor = vec4(vec3(fogFactor), 1.0);
     if(fogFactor > 1.0) {
         gl_FragColor = fogColor;
     } else {
-        gl_FragColor = mix(vec4(water((fragPos).xz, vec3(0.0, 1.0, 0.0)) * lightfactor + vec3(1.0, 1.0, 1.0) * spec * 0.7, 1.0), fogColor, fogFactor);
+        gl_FragColor = mix(vec4(water((fragPos).xz, vec3(0.0, 1.0, 0.0), foam) * lightfactor + vec3(1.0, 1.0, 1.0) * spec * 0.7, 1.0), fogColor, fogFactor);
     }
 }

@@ -1,10 +1,7 @@
-const r = @cImport({
-    @cInclude("stddef.h"); // NULL
-    @cInclude("raylib.h");
-    @cInclude("raygui.h"); // Required for GUI controls
-    @cInclude("raymath.h");
-});
+const r = @import("ray.zig").r;
+const wave = @import("wave.zig");
 
+const math = std.math;
 const std = @import("std");
 
 const dprint = std.debug.print;
@@ -32,7 +29,7 @@ fn render_water_tile(x: i32, y: i32, model: *r.Model) void {
     r.DrawModel(model.*, vec3(@as(f32, @floatFromInt(x)) * 50, 0, @as(f32, @floatFromInt(y)) * 50), 1, r.BLUE);
 }
 
-fn render_water_inf(ship_pos: r.Vector3, model: *r.Model) void {
+fn render_water_inf(ship_pos: r.Vector3, model: *r.Model, lowPoly: *r.Model) void {
     var x = @divFloor(fti(ship_pos.x + 25), 50);
     var z = @divFloor(fti(ship_pos.z + 25), 50);
 
@@ -40,17 +37,22 @@ fn render_water_inf(ship_pos: r.Vector3, model: *r.Model) void {
     while (i <= x + WATER_RANGE) : (i += 1) {
         var j = z - WATER_RANGE;
         while (j <= z + WATER_RANGE) : (j += 1) {
-            render_water_tile(i, j, model);
+            var dist = (@abs(x - i) + @abs(z - j));
+            if (dist > 5) {
+                render_water_tile(i, j, lowPoly);
+            } else {
+                render_water_tile(i, j, model);
+            }
         }
     }
 }
 
 pub fn main() void {
-    const screen_width = 1920;
-    const screen_height = 1080;
+    const screen_width = 1280;
+    const screen_height = 720;
     r.InitWindow(screen_width, screen_height, "NGN43");
     defer r.CloseWindow(); // Close window and OpenGL context
-    r.SetTargetFPS(60);
+    r.SetTargetFPS(500);
 
     var camera = r.Camera3D{ .position = vec3(0, 20, 20), .target = vec3(0, 0, 0), .up = vec3(0, 1, 0), .fovy = 45, .projection = r.CAMERA_PERSPECTIVE };
 
@@ -65,14 +67,17 @@ pub fn main() void {
     var target = r.LoadRenderTexture(screen_width, screen_height);
 
     // Generate water mesh:
-    var mesh = r.GenMeshPlane(50, 50, 150, 150);
+    var mesh = r.GenMeshPlane(50, 50, 200, 200);
     var watermodel = r.LoadModelFromMesh(mesh);
+    var meshLow = r.GenMeshPlane(50, 50, 10, 10);
+    var watermodelLow = r.LoadModelFromMesh(meshLow);
     watermodel.materials[0].shader = water_shader;
+    watermodelLow.materials[0].shader = water_shader;
 
     var ship_dir = vec2(0, 1);
     var camera_dir = vec2(0, 1);
 
-    var ship_pos = vec3(0.0, -0.1, 0.0);
+    var ship_pos = vec3(0.0, -0.6, 0.0);
     var ship_to_cam = vec3(0, 0, 0);
 
     var model = r.LoadModel("resources/models/ship1.obj");
@@ -110,20 +115,40 @@ pub fn main() void {
         // ship_to_cam = r.Vector3Scale(vec3(-camera_dir.x, 100, -camera_dir.y), 2);
         ship_pos = r.Vector3Add(ship_pos, r.Vector3Scale(vec3(ship_dir.x, 0.0, ship_dir.y), speed));
 
+        var ship_dir_sideways = r.Vector2Rotate(ship_dir, 3.141 / 2.0);
+        var waveHeight = wave.getWaveHeight(ship_pos, totalTime);
+        var waveHeightSample = wave.getWaveHeight(r.Vector3Add(ship_pos, r.Vector3Scale(vec3(ship_dir.x, 0, ship_dir.y), 2)), totalTime);
+        var waveHeightSampleSideways = wave.getWaveHeight(r.Vector3Add(ship_pos, r.Vector3Scale(vec3(ship_dir_sideways.x, 0, ship_dir_sideways.y), 1)), totalTime);
+
+        var angle2 = math.atan2(f32, waveHeightSample - waveHeight, 2);
+        var angle2side = math.atan2(f32, waveHeightSampleSideways - waveHeight, 1);
+
+        var shipFramePos = ship_pos;
+        shipFramePos.y += waveHeight;
+
+        var shipRotationQ = r.QuaternionFromAxisAngle(vec3(0, 1, 0), r.Vector2Angle(vec2(0, 1), ship_dir));
+        var shipRotationQ2 = r.QuaternionFromAxisAngle(vec3(1, 0, 0), angle2 * 0.6);
+        var shipRotationQ3 = r.QuaternionFromAxisAngle(vec3(0, 0, 1), angle2side * 0.6);
+        var combinedQ = r.QuaternionNormalize(r.QuaternionMultiply(shipRotationQ, r.QuaternionMultiply(shipRotationQ2, shipRotationQ3)));
+        var combinedRotation = r.Vector3Normalize(vec3(combinedQ.x, combinedQ.y, combinedQ.z));
+        var combinedAngle = 2 * math.acos(combinedQ.w);
+
         // Draw here:
         camera.position = r.Vector3Add(ship_pos, ship_to_cam);
         camera.target = ship_pos;
         totalTime += r.GetFrameTime();
         r.SetShaderValue(water_shader, timeLoc, &totalTime, r.SHADER_UNIFORM_FLOAT);
         r.SetShaderValue(water_shader, cameraLoc, &camera.position, r.SHADER_UNIFORM_VEC3);
+
         {
             r.BeginTextureMode(target);
             r.ClearBackground(r.WHITE);
             r.DrawTexture(sky_texture, 0, 0, r.WHITE);
             r.BeginMode3D(camera);
-            r.DrawModelEx(model, ship_pos, vec3(0, 1, 0), to_deg(r.Vector2Angle(vec2(0, 1), ship_dir)), vec3(2.0, 2.0, 2.0), r.WHITE);
+            r.DrawModelEx(model, shipFramePos, combinedRotation, to_deg(combinedAngle), vec3(2.0, 2.0, 2.0), r.WHITE);
             r.DrawModel(town, vec3(125, 0.5, 45), 3, r.WHITE);
-            render_water_inf(ship_pos, &watermodel);
+            render_water_inf(ship_pos, &watermodel, &watermodelLow);
+            r.DrawPoint3D(ship_pos, r.BLUE);
             r.EndMode3D();
             r.EndTextureMode();
         }

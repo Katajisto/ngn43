@@ -5,6 +5,8 @@ attribute vec3 vertexPosition;
 attribute vec2 vertexTexCoord;
 attribute vec3 vertexNormal;
 attribute vec4 vertexColor;
+attribute vec3 vertexTangent;
+
 
 // Input uniform values
 uniform mat4 mvp;

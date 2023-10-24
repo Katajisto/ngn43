@@ -5,6 +5,7 @@ attribute vec3 vertexPosition;
 attribute vec2 vertexTexCoord;
 attribute vec3 vertexNormal;
 attribute vec4 vertexColor;
+attribute vec3 vertexTangent;
 
 // Input uniform values
 uniform mat4 mvp;
@@ -59,6 +60,8 @@ void main() {
     p += wave(vec4(1.0, 0.0, 0.2, 10.0), world_vertex_pos, tangent, binormal);
     p += wave(vec4(0.0, 1.0, 0.125, 15.0), world_vertex_pos, tangent, binormal);
     p += wave(vec4(1.0, 1.0, 0.225, 5.0), world_vertex_pos, tangent, binormal);
+    p += wave(vec4(1.0, 0.3, 0.1, 20.0), world_vertex_pos, tangent, binormal);
+    p += wave(vec4(0.6, 0.2, 0.2, 1.0), world_vertex_pos, tangent, binormal);
     
     normal = normalize(cross(normalize(binormal), normalize(tangent)));
 
@@ -66,5 +69,5 @@ void main() {
 	dist = length(camera - world_vertex_pos);
     
     gl_Position = mvp * vec4(p.x, p.y, p.z, 1.0);
-	// stime = time;
+	stime = time;
 }
